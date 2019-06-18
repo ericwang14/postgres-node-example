@@ -1,0 +1,61 @@
+version: "3"
+
+services:
+  pg_master:
+    #build: ./master
+    image: ericw16/pg_db_pg_master
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=hamed
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=hamed
+      - PG_REP_USER=rep
+      - PG_REP_PASSWORD=123456
+    deploy:
+      placement:
+        constraints:
+          - 'node.role == manager'
+    networks:
+      - pg_cluster
+
+
+  pg_slave:
+    #build: ./slave
+    image: ericw16/pg_db_pg_slave
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=hamed
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=hamed
+      - PG_REP_USER=rep
+      - PG_REP_PASSWORD=123456
+    deploy:
+      replicas: 3
+      placement:
+        constraints:
+          - 'node.role == worker'
+    networks:
+      - pg_cluster
+
+
+  counter_app:
+     image: ericw16/counter_app:latest
+     ports:
+       - 3000:3000
+     deploy:
+       replicas: 5
+     networks:
+       - front-tier
+       - pg_cluster
+  
+networks:
+  front-tier:
+  pg_cluster:
+    driver: overlay
+
+volumes:
+  pg_data:
